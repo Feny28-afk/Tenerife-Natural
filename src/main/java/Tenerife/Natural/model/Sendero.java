@@ -30,6 +30,4 @@ public class Sendero {
     public void setEstadoMeteorologico(String estadoMeteorologico) { this.estadoMeteorologico = estadoMeteorologico; }
 
 
-
-    //AGAUCATE
 }
