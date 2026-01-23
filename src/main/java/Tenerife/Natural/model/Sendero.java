@@ -28,4 +28,8 @@ public class Sendero {
 
     public String getEstadoMeteorologico() { return estadoMeteorologico; }
     public void setEstadoMeteorologico(String estadoMeteorologico) { this.estadoMeteorologico = estadoMeteorologico; }
+
+
+
+    //AGAUCATE
 }
