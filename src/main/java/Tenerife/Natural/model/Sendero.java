@@ -1,6 +1,7 @@
 package Tenerife.Natural.model;
 import jakarta.persistence.*;
 
+@Entity
 @Table(name = "senderos")
 public class Sendero {
     @Id
