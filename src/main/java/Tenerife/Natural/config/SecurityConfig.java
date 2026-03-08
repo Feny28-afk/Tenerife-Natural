@@ -35,23 +35,23 @@ public class SecurityConfig {
         return authProvider;
     }
 
-    // 3. Definimos qué páginas son públicas y cuáles privadas
+    // 3. Definimos la seguridad de las rutas (Modificado para Sprint 4)
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
+                .csrf(csrf -> csrf.disable())
+                .cors(cors -> cors.configure(http)) // Añadimos soporte explícito para CORS
                 .authorizeHttpRequests(auth -> auth
-                        .requestMatchers("/", "/registro", "/css/**", "/js/**").permitAll() // Público
-                        .anyRequest().authenticated()
+                        // Permitimos ABSOLUTAMENTE TODO de momento para que podáis avanzar
+                        .anyRequest().permitAll()
                 )
-                .formLogin(form -> form
-                        .loginPage("/login") // Nuestra futura página de login
-                        .defaultSuccessUrl("/", true)
-                        .permitAll()
-                )
-                .logout(logout -> logout
-                        .logoutSuccessUrl("/")
-                        .permitAll()
-                );
+                // Comentamos o quitamos temporalmente el formLogin para que no redirija
+                /*.formLogin(form -> form
+                    .loginPage("/login")
+                    .defaultSuccessUrl("/", true)
+                    .permitAll()
+                )*/
+                .logout(logout -> logout.permitAll());
 
         return http.build();
     }

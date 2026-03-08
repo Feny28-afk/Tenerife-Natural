@@ -13,6 +13,10 @@ public class Sendero {
     private String dificultad;
     private String estadoMeteorologico;
 
+    // --- NUEVOS CAMPOS PARA EL SPRINT 4 ---
+    private double latitud;
+    private double longitud;
+
     public Sendero() {}
 
     public Long getId() { return id; }
@@ -30,5 +34,10 @@ public class Sendero {
     public String getEstadoMeteorologico() { return estadoMeteorologico; }
     public void setEstadoMeteorologico(String estadoMeteorologico) { this.estadoMeteorologico = estadoMeteorologico; }
 
+    // --- GETTERS Y SETTERS PARA COORDENADAS ---
+    public double getLatitud() { return latitud; }
+    public void setLatitud(double latitud) { this.latitud = latitud; }
 
+    public double getLongitud() { return longitud; }
+    public void setLongitud(double longitud) { this.longitud = longitud; }
 }

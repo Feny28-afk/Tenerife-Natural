@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Gestión de Senderos </title>
+    <style>
+        body { font-family: Arial, sans-serif; margin: 20px; }
+        table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
+        th { background-color: #4CAF50; color: white; }
+        .btn { padding: 5px 10px; text-decoration: none; color: white; border-radius: 3px; }
+        .btn-nuevo { background-color: #2196F3; }
+        .btn-eliminar { background-color: #f44336; }
+        .btn-acceso { background-color: #ff9800; }
+        .btn-mapa { background-color: #9c27b0; margin-left: 10px; }
+    </style>
+</head>
+<body>
+<h1>Gestión de Senderos Naturales 🌿</h1>
+
+<a th:href="@{/senderos/nuevo}" class="btn btn-nuevo">Añadir Nuevo Sendero</a>
+<a href="/index.html" class="btn btn-mapa">Ver Mapa Interactivo</a>
+
+<table>
+    <thead>
+    <tr>
+        <th>ID</th>
+        <th>Nombre</th>
+        <th>Dificultad</th>
+        <th>Clima Actual</th>
+        <th>Acceso Abierto</th>
+        <th>Acciones</th>
+    </tr>
+    </thead>
+    <tbody>
+    <tr th:each="sendero : ${senderos}">
+        <td th:text="${sendero.id}">1</td>
+        <td th:text="${sendero.nombreSendero}">Teide</td>
+        <td th:text="${sendero.dificultad}">Alta</td>
+        <td th:text="${sendero.estadoMeteorologico}">Soleado</td>
+        <td th:text="${sendero.acceso ? 'Sí' : 'No'}">Sí</td>
+        <td>
+            <a th:href="@{/senderos/alternar-acceso/{id}(id=${sendero.id})}" class="btn btn-acceso">Alternar Acceso</a>
+            <a th:href="@{/senderos/eliminar/{id}(id=${sendero.id})}" class="btn btn-eliminar" onclick="return confirm('¿Seguro que quieres borrarlo?');">Eliminar</a>
+        </td>
+    </tr>
+    </tbody>
+</table>
+</body>
+</html>
