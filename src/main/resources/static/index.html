@@ -2,13 +2,12 @@
 <html lang="es">
 <head>
     <meta charset="UTF-8">
-    <title>Mapa de Senderos Tenerife </title>
+    <title>Mapa de Senderos Tenerife Natural 🌿</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
-
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #e8f5e9; /* Verde natural */
+            background-color: #e8f5e9;
             display: flex;
             flex-direction: column;
             align-items: center;
@@ -16,7 +15,6 @@
             min-height: 100vh;
             margin: 0;
         }
-
         .map-card {
             background: white;
             padding: 20px;
@@ -26,11 +24,7 @@
             max-width: 1000px;
             text-align: center;
         }
-
         h1 { color: #2e7d32; margin-bottom: 10px; }
-        p { color: #666; margin-bottom: 20px; }
-
-        /* Contenedor del mapa */
         #map {
             height: 500px;
             width: 100%;
@@ -38,9 +32,8 @@
             border: 2px solid #a5d6a7;
             cursor: crosshair;
         }
-
         .popup-clima { font-weight: bold; color: #1565c0; display: block; margin-top: 5px; }
-
+        .popup-bus { font-size: 0.9em; color: #d32f2f; margin-top: 8px; border-top: 1px dashed #ccc; padding-top: 5px; }
         .btn-gestion {
             margin-top: 20px;
             display: inline-block;
@@ -50,18 +43,6 @@
             text-decoration: none;
             border-radius: 8px;
             font-weight: bold;
-            transition: background 0.3s;
-        }
-
-        .btn-gestion:hover {
-            background-color: #1b5e20;
-        }
-
-        .instrucciones {
-            font-size: 0.9em;
-            color: #555;
-            margin-top: 10px;
-            font-style: italic;
         }
     </style>
 </head>
@@ -69,79 +50,70 @@
 
 <div class="map-card">
     <h1>Explora Tenerife Natural 🌿</h1>
-    <p>Consulta el estado del tiempo y la temperatura de tus rutas en tiempo real. UwU</p>
-
+    <p>Clima y Guaguas en tiempo real para tus rutas. UwU</p>
     <div id="map"></div>
-
-    <p class="instrucciones">💡 Haz clic en cualquier parte del mapa para obtener las coordenadas exactas.</p>
-
     <a href="/senderos" class="btn-gestion">⚙️ Gestionar mis Senderos</a>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-    // 1. Inicializar mapa centrado en Tenerife (El Teide)
     const map = L.map('map').setView([28.2915, -16.6291], 10);
-
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '© OpenStreetMap contributors'
     }).addTo(map);
 
-    // 2. Cargar senderos guardados desde tu API
+    // Cargar senderos y sus guaguas
     fetch('http://localhost:8080/api/senderos')
-        .then(response => {
-            if (!response.ok) throw new Error("Error al conectar con la API");
-            return response.json();
-        })
+        .then(response => response.json())
         .then(senderos => {
             senderos.forEach(s => {
                 if(s.latitud && s.longitud) {
                     const marker = L.marker([s.latitud, s.longitud]).addTo(map);
 
-                    // El clima ahora incluirá la temperatura gracias al cambio en WeatherService
-                    const infoClima = s.estadoMeteorologico || "Datos no disponibles";
-
-                    marker.bindPopup(`
+                    // 1. Iniciamos el contenido del popup con el clima
+                    let popupContent = `
                         <div style="text-align:center">
                             <b style="font-size:1.1em; color:#2e7d32;">${s.nombreSendero}</b><br>
                             <span>Dificultad: ${s.dificultad}</span><br>
-                            <hr style="border:0.5px solid #eee">
-                            <span class="popup-clima">🌡️ ${infoClima}</span>
+                            <span class="popup-clima">🌡️ ${s.estadoMeteorologico || 'Consultando...'}</span>
+                            <div id="bus-info-${s.id}" class="popup-bus">⌛ Cargando guaguas...</div>
                         </div>
-                    `);
+                    `;
+                    marker.bindPopup(popupContent);
+
+                    // 2. Cuando el usuario abre el popup, buscamos las guaguas en tiempo real
+                    marker.on('popupopen', () => {
+                        fetch(`http://localhost:8080/api/senderos/${s.id}/transporte`)
+                            .then(res => res.json())
+                            .then(guaguas => {
+                                const container = document.getElementById(`bus-info-${s.id}`);
+                                if(guaguas.length > 0) {
+                                    let html = "<b>🚌 Próximas Guaguas:</b><br>";
+                                    guaguas.forEach(g => {
+                                        const tiempo = g.tiempoLlegada > 0 ? `${g.tiempoLlegada} min` : "Sin datos";
+                                        html += `Línea ${g.linea}: ${tiempo} ⏱️<br>`;
+                                    });
+                                    container.innerHTML = html;
+                                } else {
+                                    container.innerHTML = "❌ No hay guaguas registradas para este sendero.";
+                                }
+                            })
+                            .catch(() => {
+                                document.getElementById(`bus-info-${s.id}`).innerHTML = "Error al conectar con TITSA.";
+                            });
+                    });
                 }
             });
-        })
-        .catch(err => console.error("Error cargando el mapa:", err));
+        });
 
-    // 3. Función para capturar coordenadas al hacer clic
+    // Función para coordenadas al hacer clic
     var tempMarker;
     map.on('click', function(e) {
         var lat = e.latlng.lat.toFixed(6);
         var lng = e.latlng.lng.toFixed(6);
-
-        if (tempMarker) {
-            map.removeLayer(tempMarker);
-        }
-
+        if (tempMarker) map.removeLayer(tempMarker);
         tempMarker = L.marker([lat, lng]).addTo(map)
-            .bindPopup(`
-                <div style="text-align:center">
-                    <b>📍 Coordenadas detectadas</b><br>
-                    Lat: <code>${lat}</code><br>
-                    Lng: <code>${lng}</code><br>
-                    <small>(Copia estas para tu nuevo sendero)</small>
-                </div>
-            `)
-            .openPopup();
-
-        // Solo intenta rellenar si los inputs existen (evita errores en consola)
-        var inputLat = document.getElementById('latitud');
-        var inputLng = document.getElementById('longitud');
-        if(inputLat && inputLng) {
-            inputLat.value = lat;
-            inputLng.value = lng;
-        }
+            .bindPopup(`<b>📍 Coordenadas:</b><br>Lat: ${lat}<br>Lng: ${lng}`).openPopup();
     });
 </script>
 </body>
