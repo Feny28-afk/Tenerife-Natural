@@ -24,7 +24,17 @@
             max-width: 1000px;
             text-align: center;
         }
-        h1 { color: #2e7d32; margin-bottom: 10px; }
+        .user-profile {
+            background: #f1f8e9;
+            padding: 10px 20px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+            border: 1px solid #c8e6c9;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+        h1 { color: #2e7d32; margin: 10px 0; }
         #map {
             height: 500px;
             width: 100%;
@@ -34,6 +44,24 @@
         }
         .popup-clima { font-weight: bold; color: #1565c0; display: block; margin-top: 5px; }
         .popup-bus { font-size: 0.9em; color: #d32f2f; margin-top: 8px; border-top: 1px dashed #ccc; padding-top: 5px; }
+        .recomendacion-badge {
+            display: inline-block;
+            padding: 4px 8px;
+            border-radius: 5px;
+            font-size: 0.85em;
+            font-weight: bold;
+            margin-top: 5px;
+        }
+        .btn-fav {
+            background: #ffd54f;
+            border: none;
+            padding: 5px 10px;
+            border-radius: 5px;
+            cursor: pointer;
+            margin-top: 10px;
+            font-weight: bold;
+        }
+        .btn-fav:hover { background: #ffca28; }
         .btn-gestion {
             margin-top: 20px;
             display: inline-block;
@@ -49,20 +77,27 @@
 <body>
 
 <div class="map-card">
+    <div class="user-profile">
+        <span>👤 <b>Usuario:</b> Juan_Senderista</span>
+        <span>💪 <b>Nivel Físico:</b> Principiante (Bajo)</span>
+    </div>
+
     <h1>Explora Tenerife Natural 🌿</h1>
-    <p>Clima y Guaguas en tiempo real para tus rutas. UwU</p>
+    <p>Clima, Guaguas y Recomendaciones Personalizadas. UwU</p>
+
     <div id="map"></div>
+
     <a href="/senderos" class="btn-gestion">⚙️ Gestionar mis Senderos</a>
 </div>
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-    const map = L.map('map').setView([28.2915, -16.6291], 10);
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        attribution: '© OpenStreetMap contributors'
-    }).addTo(map);
+    // SPRINT 6: Usuario logueado (Simulado para pruebas con ID 1 y Nivel 1)
+    const USUARIO_SESION = { id: 1, nivel: 1 };
 
-    // Cargar senderos y sus guaguas
+    const map = L.map('map').setView([28.2915, -16.6291], 10);
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
+
     fetch('http://localhost:8080/api/senderos')
         .then(response => response.json())
         .then(senderos => {
@@ -70,43 +105,68 @@
                 if(s.latitud && s.longitud) {
                     const marker = L.marker([s.latitud, s.longitud]).addTo(map);
 
-                    // 1. Iniciamos el contenido del popup con el clima
+                    // --- LÓGICA DE RECOMENDACIÓN FÍSICA ---
+                    const niveles = { "Baja": 1, "Media": 2, "Alta": 3 };
+                    const nivelRuta = niveles[s.dificultad] || 1;
+
+                    let msgRec = "";
+                    let colorRec = "";
+
+                    if (USUARIO_SESION.nivel >= nivelRuta) {
+                        msgRec = "✅ Apto para tu nivel";
+                        colorRec = "#e8f5e9; color: #2e7d32";
+                    } else {
+                        msgRec = "⚠️ Exceso de esfuerzo";
+                        colorRec = "#ffebee; color: #c62828";
+                    }
+
                     let popupContent = `
                         <div style="text-align:center">
                             <b style="font-size:1.1em; color:#2e7d32;">${s.nombreSendero}</b><br>
-                            <span>Dificultad: ${s.dificultad}</span><br>
-                            <span class="popup-clima">🌡️ ${s.estadoMeteorologico || 'Consultando...'}</span>
-                            <div id="bus-info-${s.id}" class="popup-bus">⌛ Cargando guaguas...</div>
+                            <div class="recomendacion-badge" style="background: ${colorRec}">${msgRec}</div><br>
+                            <span class="popup-clima">🌡️ ${s.estadoMeteorologico || 'Cargando...'}</span>
+                            <div id="bus-info-${s.id}" class="popup-bus">⌛ Buscando guaguas...</div>
+                            <button class="btn-fav" onclick="marcarFavorito(${s.id})">⭐ Guardar Favorito</button>
                         </div>
                     `;
                     marker.bindPopup(popupContent);
 
-                    // 2. Cuando el usuario abre el popup, buscamos las guaguas en tiempo real
                     marker.on('popupopen', () => {
                         fetch(`http://localhost:8080/api/senderos/${s.id}/transporte`)
                             .then(res => res.json())
                             .then(guaguas => {
                                 const container = document.getElementById(`bus-info-${s.id}`);
                                 if(guaguas.length > 0) {
-                                    let html = "<b>🚌 Próximas Guaguas:</b><br>";
+                                    let html = "<b>🚌 Guaguas:</b><br>";
                                     guaguas.forEach(g => {
-                                        const tiempo = g.tiempoLlegada > 0 ? `${g.tiempoLlegada} min` : "Sin datos";
-                                        html += `Línea ${g.linea}: ${tiempo} ⏱️<br>`;
+                                        html += `L-${g.linea}: ${g.tiempoLlegada} min ⏱️<br>`;
                                     });
                                     container.innerHTML = html;
                                 } else {
-                                    container.innerHTML = "❌ No hay guaguas registradas para este sendero.";
+                                    container.innerHTML = "❌ No hay guaguas cerca";
                                 }
-                            })
-                            .catch(() => {
-                                document.getElementById(`bus-info-${s.id}`).innerHTML = "Error al conectar con TITSA.";
                             });
                     });
                 }
             });
         });
 
-    // Función para coordenadas al hacer clic
+    // SPRINT 6: Función para guardar en la cuenta personalizada
+    function marcarFavorito(senderoId) {
+        const params = new URLSearchParams();
+        params.append('usuarioId', USUARIO_SESION.id);
+
+        fetch(`/senderos/favorito/${senderoId}`, {
+            method: 'POST',
+            body: params
+        })
+        .then(res => res.text())
+        .then(data => {
+            alert(data); // Muestra "¡Añadido a tus favoritos! ⭐"
+        })
+        .catch(err => console.error("Error al guardar favorito"));
+    }
+
     var tempMarker;
     map.on('click', function(e) {
         var lat = e.latlng.lat.toFixed(6);
