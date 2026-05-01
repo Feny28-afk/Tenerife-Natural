@@ -42,4 +42,5 @@ public class SenderoRestController {
     public List<TransportePublico> obtenerTransporte(@PathVariable Long id) {
         return transporteService.obtenerTransporteEnTiempoReal(id);
     }
+
 }

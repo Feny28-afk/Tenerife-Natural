@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Sugerencias de Senderos</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <style>
+        .card-sug { transition: transform 0.2s; border: none; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
+        .card-sug:hover { transform: translateY(-5px); }
+        .pyme-badge { background-color: #f8f9fa; border: 1px solid #dee2e6; padding: 5px 10px; border-radius: 15px; font-size: 0.85rem; display: inline-block; margin: 2px; }
+    </style>
+</head>
+<body class="bg-light">
+
+<div class="container py-5">
+    <h1 class="text-center mb-5">Senderos Recomendados para ti</h1>
+
+    <div class="row">
+        <!-- Bucle principal: recorre la lista 'sugerencias' enviada desde el controlador -->
+        <div class="col-md-4 mb-4" th:each="sendero : ${sugerencias}">
+            <div class="card h-100 card-sug">
+                <div class="card-body">
+                    <!-- CORRECCIÓN: Usamos 'nombreSendero' como está en tu clase Java -->
+                    <h5 class="card-title text-primary" th:text="${sendero.nombreSendero}">Nombre del Sendero</h5>
+
+                    <p class="card-text text-muted small">
+                        Estado: <span th:text="${sendero.estadoMeteorologico}">Despejado</span>
+                    </p>
+
+                    <div class="mb-3">
+                        <span class="badge bg-success" th:if="${sendero.acceso}">Acceso Abierto</span>
+                        <span class="badge bg-danger" th:unless="${sendero.acceso}">Cerrado</span>
+                        <span class="badge bg-info text-dark" th:text="${sendero.dificultad}">Dificultad</span>
+                    </div>
+
+                    <p class="mb-1"><strong>Coordenadas:</strong></p>
+                    <code class="d-block mb-3" th:text="${sendero.latitud} + ', ' + ${sendero.longitud}">0.0, 0.0</code>
+
+                    <hr>
+                    <h6>Pymes cercanas:</h6>
+                    <div th:if="${pymesPorSendero != null and pymesPorSendero[sendero.id] != null}">
+                        <!-- Itera sobre el mapa usando el ID del sendero -->
+                        <div th:each="pyme : ${pymesPorSendero[sendero.id]}" class="pyme-badge">
+                            🛍️ <span th:text="${pyme.nombre}">Nombre Pyme</span>
+                        </div>
+                    </div>
+                    <div th:if="${pymesPorSendero == null or pymesPorSendero[sendero.id] == null}">
+                        <p class="text-muted small">No hay comercios registrados cerca.</p>
+                    </div>
+                </div>
+                <div class="card-footer bg-transparent border-0 pb-3">
+                    <a th:href="@{/senderos/detalle/{id}(id=${sendero.id})}" class="btn btn-outline-primary w-100">Ver Detalles</a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+</body>
+</html>

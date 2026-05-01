@@ -4,7 +4,7 @@ import jakarta.persistence.*;
 import com.fasterxml.jackson.annotation.JsonIgnore;
 
 @Entity
-@Table(name = "transporte_rutas") // ¡Aquí está el cambio clave para evitar el error 1813!
+@Table(name = "transporte_rutas")
 public class TransportePublico {
 
     @Id
@@ -14,9 +14,19 @@ public class TransportePublico {
     @Column(unique = true)
     private String matricula;
 
-    private String linea; // Ejemplo: "348"
+    private String linea;
     private boolean disponibilidad;
-    private int tiempoLlegada; // En minutos
+    private int tiempoLlegada;
+
+    // --- NUEVOS CAMPOS PARA EL REPOSITORIO ---
+
+    @Column(name = "stop_id")
+    private String stopId; // Para buscar por parada de TITSA
+
+    @Column(name = "sendero_id_simple")
+    private Long senderoId; // Para buscar por ID de sendero fácilmente
+
+    // -----------------------------------------
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "sendero_id")
@@ -40,6 +50,12 @@ public class TransportePublico {
 
     public int getTiempoLlegada() { return tiempoLlegada; }
     public void setTiempoLlegada(int tiempoLlegada) { this.tiempoLlegada = tiempoLlegada; }
+
+    public String getStopId() { return stopId; }
+    public void setStopId(String stopId) { this.stopId = stopId; }
+
+    public Long getSenderoId() { return senderoId; }
+    public void setSenderoId(Long senderoId) { this.senderoId = senderoId; }
 
     public Sendero getSendero() { return sendero; }
     public void setSendero(Sendero sendero) { this.sendero = sendero; }

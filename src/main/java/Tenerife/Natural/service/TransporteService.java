@@ -28,4 +28,10 @@ public class TransporteService {
         }
         return transportes;
     }
+    // Dentro de TransporteService.java
+    public List<TransportePublico> obtenerTiemposParaParada(String stopId) {
+        // Aquí va tu lógica actual para leer los tiempos.
+        // Si usas una lista de prueba o base de datos, cámbialo según necesites.
+        return transporteRepository.findByStopId(stopId);
+    }
 }

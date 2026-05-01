@@ -60,8 +60,20 @@
             cursor: pointer;
             margin-top: 10px;
             font-weight: bold;
+            width: 100%;
         }
         .btn-fav:hover { background: #ffca28; }
+        .btn-detalle {
+            background: #2e7d32;
+            color: white;
+            padding: 8px 12px;
+            border-radius: 5px;
+            text-decoration: none;
+            font-weight: bold;
+            display: block;
+            margin-top: 10px;
+        }
+        .btn-detalle:hover { background: #1b5e20; }
         .btn-gestion {
             margin-top: 20px;
             display: inline-block;
@@ -70,6 +82,29 @@
             color: white;
             text-decoration: none;
             border-radius: 8px;
+            font-weight: bold;
+        }
+        /* Estilos para paradas de guaguas */
+        .tooltip-guagua {
+            background-color: #1565c0;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            font-weight: bold;
+            padding: 4px 8px;
+        }
+        .tiempo-item {
+            display: flex;
+            justify-content: space-between;
+            padding: 4px 0;
+            border-bottom: 1px solid #eee;
+            font-size: 0.9em;
+        }
+        .linea-badge {
+            background: #1565c0;
+            color: white;
+            padding: 2px 6px;
+            border-radius: 4px;
             font-weight: bold;
         }
     </style>
@@ -92,12 +127,12 @@
 
 <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 <script>
-    // SPRINT 6: Usuario logueado (Simulado para pruebas con ID 1 y Nivel 1)
     const USUARIO_SESION = { id: 1, nivel: 1 };
 
     const map = L.map('map').setView([28.2915, -16.6291], 10);
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png').addTo(map);
 
+    // --- SECCIÓN 1: CARGA DE SENDEROS ---
     fetch('http://localhost:8080/api/senderos')
         .then(response => response.json())
         .then(senderos => {
@@ -105,7 +140,6 @@
                 if(s.latitud && s.longitud) {
                     const marker = L.marker([s.latitud, s.longitud]).addTo(map);
 
-                    // --- LÓGICA DE RECOMENDACIÓN FÍSICA ---
                     const niveles = { "Baja": 1, "Media": 2, "Alta": 3 };
                     const nivelRuta = niveles[s.dificultad] || 1;
 
@@ -121,11 +155,13 @@
                     }
 
                     let popupContent = `
-                        <div style="text-align:center">
+                        <div style="text-align:center; min-width: 180px;">
                             <b style="font-size:1.1em; color:#2e7d32;">${s.nombreSendero}</b><br>
                             <div class="recomendacion-badge" style="background: ${colorRec}">${msgRec}</div><br>
                             <span class="popup-clima">🌡️ ${s.estadoMeteorologico || 'Cargando...'}</span>
                             <div id="bus-info-${s.id}" class="popup-bus">⌛ Buscando guaguas...</div>
+
+                            <a href="/senderos/detalle/${s.id}" class="btn-detalle">📖 Ver detalles y reseñas</a>
                             <button class="btn-fav" onclick="marcarFavorito(${s.id})">⭐ Guardar Favorito</button>
                         </div>
                     `;
@@ -151,7 +187,76 @@
             });
         });
 
-    // SPRINT 6: Función para guardar en la cuenta personalizada
+    // --- SECCIÓN 2: CARGA DE PARADAS TITSA (CORREGIDO) ---
+    fetch('http://localhost:8080/api/guaguas/paradas') // Asegúrate que esta ruta en tu StopController sea correcta
+    .then(response => response.json())
+    .then(paradas => {
+        paradas.forEach(p => {
+            if(p.latitude && p.longitude) {
+                const busMarker = L.circleMarker([p.latitude, p.longitude], {
+                    radius: 6,
+                    fillColor: "#1565c0",
+                    color: "#fff",
+                    weight: 2,
+                    fillOpacity: 0.9
+                }).addTo(map);
+
+                busMarker.bindTooltip(`🚌 Parada: ${p.name}`, {
+                    className: 'tooltip-guagua',
+                    direction: 'top'
+                });
+
+                busMarker.on('click', function(e) {
+                    L.DomEvent.stopPropagation(e);
+
+                    // CORRECCIÓN URL: Usamos stopUrl del CSV (p.stopUrl) que es la que funciona.
+                    // Si no existe, usamos la de correspondencias que vimos en tu archivo.
+                    const urlTitsaOficial = p.stopUrl ? p.stopUrl : `http://www.titsa.com/correspondencias.php?idc=${p.id}`;
+
+                    const popupBus = `
+                        <div style="min-width: 220px; text-align:center;">
+                            <b style="color:#1565c0; font-size:1.1em;">🚏 ${p.name}</b><br>
+                            <small style="color:#666;">ID Parada: ${p.id}</small><hr>
+
+                            <div id="real-time-${p.id}" style="text-align:left; margin-bottom:10px;">
+
+                            </div>
+
+                            <a href="${urlTitsaOficial}" target="_blank"
+                               style="background-color: #1565c0; color: white; padding: 10px; border-radius: 8px; text-decoration: none; display: block; font-weight: bold; font-size: 0.9em; box-shadow: 0 4px 6px rgba(0,0,0,0.1);">
+                               🚌 Ver Guagua en TITSA (Líneas)
+                            </a>
+                        </div>
+                    `;
+                    busMarker.bindPopup(popupBus).openPopup();
+
+                    // CORRECCIÓN API: Ahora llamamos a /api/horarios/parada/ en lugar de /api/guaguas/parada
+                    fetch(`http://localhost:8080/api/horarios/parada/${p.id}`)
+                        .then(res => res.json())
+                        .then(tiempos => {
+                            const div = document.getElementById(`real-time-${p.id}`);
+                            if(tiempos && tiempos.length > 0) {
+                                let html = "";
+                                tiempos.forEach(t => {
+                                    html += `
+                                        <div class="tiempo-item">
+                                            <span class="linea-badge">${t.linea}</span>
+                                            <span><b>${t.tiempoLlegada}</b> ⏱️</span>
+                                        </div>`;
+                                });
+                                div.innerHTML = html;
+                            }
+                        })
+                        .catch(() => {
+                            const div = document.getElementById(`real-time-${p.id}`);
+                            if(div) div.innerHTML = "<div style='color:red; text-align:center;'>⚠️ Error de conexión</div>";
+                        });
+                });
+            }
+        });
+    });
+
+    // --- SECCIÓN 3: FUNCIONES DE FAVORITOS ---
     function marcarFavorito(senderoId) {
         const params = new URLSearchParams();
         params.append('usuarioId', USUARIO_SESION.id);
@@ -162,13 +267,15 @@
         })
         .then(res => res.text())
         .then(data => {
-            alert(data); // Muestra "¡Añadido a tus favoritos! ⭐"
+            alert(data);
         })
         .catch(err => console.error("Error al guardar favorito"));
     }
 
+    // --- SECCIÓN 4: MARCADOR DE COORDENADAS (CLIC EN MAPA) ---
     var tempMarker;
     map.on('click', function(e) {
+        // Este evento solo se disparará si el clic NO fue en una parada o sendero
         var lat = e.latlng.lat.toFixed(6);
         var lng = e.latlng.lng.toFixed(6);
         if (tempMarker) map.removeLayer(tempMarker);

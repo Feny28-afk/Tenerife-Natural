@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Detalle del Sendero - Tenerife Natural</title>
+    <style>
+        body { font-family: 'Segoe UI', sans-serif; background: #f4f7f6; padding: 20px; color: #333; line-height: 1.6; }
+        .container { max-width: 800px; margin: auto; background: white; padding: 0; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.08); }
+
+        /* Sistema de Pestañas */
+        .tabs { display: flex; background: #2d5a27; }
+        .tab-btn { flex: 1; padding: 15px; border: none; background: none; color: rgba(255,255,255,0.7); cursor: pointer; font-weight: bold; transition: 0.3s; font-size: 1em; }
+        .tab-btn.active { color: white; background: rgba(255,255,255,0.1); border-bottom: 4px solid white; }
+
+        .content-section { display: none; padding: 30px; }
+        .content-section.active { display: block; }
+
+        h1 { color: #2d5a27; margin-top: 0; }
+        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; margin-bottom: 25px; background: #f9f9f9; padding: 15px; border-radius: 8px; }
+        .label { font-weight: bold; color: #666; display: block; font-size: 0.85em; text-transform: uppercase; }
+
+        /* SECCIÓN PYMES (Sprint 8) */
+        .pymes-container { margin-top: 30px; padding: 20px; background: #f0f7f0; border-radius: 10px; border: 1px dashed #2d5a27; }
+        .pyme-card { background: white; padding: 15px; border-radius: 8px; margin-bottom: 10px; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .pyme-type { font-size: 0.75em; color: #2d5a27; font-weight: bold; text-transform: uppercase; border: 1px solid #2d5a27; padding: 2px 6px; border-radius: 4px; }
+
+        /* Formulario de Reseña */
+        .review-form { border-top: 1px solid #eee; margin-top: 30px; padding-top: 20px; }
+        .star-rating { display: flex; flex-direction: row-reverse; justify-content: flex-end; gap: 5px; margin: 10px 0; }
+        .star-rating input { display: none; }
+        .star-rating label { font-size: 28px; color: #ccc; cursor: pointer; }
+        .star-rating input:checked ~ label, .star-rating label:hover, .star-rating label:hover ~ label { color: #ffca08; }
+
+        textarea { width: 100%; padding: 12px; border: 1px solid #ddd; border-radius: 8px; min-height: 100px; box-sizing: border-box; font-family: inherit; }
+        .btn-enviar { background: #2d5a27; color: white; border: none; padding: 12px; border-radius: 6px; cursor: pointer; font-weight: bold; width: 100%; margin-top: 10px; font-size: 1em; }
+
+        /* Lista de Reseñas */
+        .reviews-list { margin-top: 30px; border-top: 1px solid #eee; padding-top: 20px; }
+        .review-item { border-bottom: 1px solid #eee; padding: 15px 0; }
+
+        /* Lista de Favoritos */
+        .fav-item { display: flex; justify-content: space-between; align-items: center; padding: 15px; border-bottom: 1px solid #eee; }
+        .empty-state { text-align: center; color: #999; padding: 40px 0; }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <!-- PESTAÑAS -->
+    <div class="tabs">
+        <button class="tab-btn active" onclick="showTab('detalle')">Información y Entorno</button>
+        <button class="tab-btn" onclick="showTab('favoritos')">Mis Favoritos</button>
+    </div>
+
+    <!-- SECCIÓN 1: DETALLE, PYMES Y RESEÑAS -->
+    <div id="detalle" class="content-section active">
+        <h1 th:text="${sendero.nombreSendero}">Nombre del Sendero</h1>
+
+        <div class="info-grid">
+            <div><span class="label">Dificultad</span><span th:text="${sendero.dificultad}">Media</span></div>
+            <div><span class="label">Clima</span><span th:text="${sendero.estadoMeteorologico}">Soleado</span></div>
+            <div><span class="label">Acceso</span><span th:text="${sendero.acceso ? 'Abierto' : 'Cerrado'}">Abierto</span></div>
+            <div><span class="label">Coordenadas</span><span th:text="${sendero.latitud + ', ' + sendero.longitud}">0, 0</span></div>
+        </div>
+
+        <!-- PYMES CERCANAS (Novedad Sprint 8) -->
+        <div class="pymes-container">
+            <h3 style="margin-top: 0;">📍 Comercios locales recomendados</h3>
+            <p style="font-size: 0.9em; color: #555;">Visita estos negocios cercanos para apoyar la economía local.</p>
+
+            <div th:if="${#lists.isEmpty(pymes)}" class="empty-state" style="padding: 10px;">
+                <p>No hay comercios registrados cerca de este punto de salida.</p>
+            </div>
+
+            <div th:each="pyme : ${pymes}" class="pyme-card">
+                <span class="pyme-type" th:text="${pyme.tipo}">Restaurante</span>
+                <strong th:text="${pyme.nombre}" style="display: block; margin-top: 5px;">Nombre Negocio</strong>
+                <p th:text="${pyme.descripcion}" style="font-size: 0.85em; color: #666; margin: 5px 0;"></p>
+            </div>
+        </div>
+
+        <!-- FORMULARIO DE RESEÑA -->
+        <div class="review-form">
+            <h3>Comparte tu experiencia</h3>
+            <form th:action="@{/senderos/opiniones/guardar}" method="post">
+                <input type="hidden" name="senderoId" th:value="${sendero.id}" />
+                <div class="star-rating">
+                    <input type="radio" id="star5" name="estrellas" value="5" required/><label for="star5">★</label>
+                    <input type="radio" id="star4" name="estrellas" value="4"/><label for="star4">★</label>
+                    <input type="radio" id="star3" name="estrellas" value="3"/><label for="star3">★</label>
+                    <input type="radio" id="star2" name="estrellas" value="2"/><label for="star2">★</label>
+                    <input type="radio" id="star1" name="estrellas" value="1"/><label for="star1">★</label>
+                </div>
+                <textarea name="comentario" placeholder="Escribe aquí tu opinión sobre el sendero..." required></textarea>
+                <button type="submit" class="btn-enviar">Publicar Reseña</button>
+            </form>
+        </div>
+
+        <!-- LISTADO DE RESEÑAS -->
+        <div class="reviews-list">
+            <h3>Opiniones de senderistas</h3>
+            <div th:if="${#lists.isEmpty(opiniones)}">
+                <p style="color: #999;">Aún no hay reseñas. ¡Sé el primero en opinar!</p>
+            </div>
+            <div th:each="op : ${opiniones}" class="review-item">
+                <div style="color: #ffca08; font-size: 1.2em;">
+                    <span th:each="i : ${#numbers.sequence(1, op.estrellas)}">★</span>
+                </div>
+                <p th:text="${op.comentario}" style="margin: 5px 0;"></p>
+                <small style="color: #888;" th:text="${'Publicado por: ' + op.usuario.username}"></small>
+            </div>
+        </div>
+    </div>
+
+    <!-- SECCIÓN 2: FAVORITOS -->
+    <div id="favoritos" class="content-section">
+        <h2>Tus Senderos Guardados</h2>
+        <div th:if="${#lists.isEmpty(favoritos)}" class="empty-state">
+            <p>Aún no tienes senderos en favoritos.</p>
+        </div>
+        <div th:each="fav : ${favoritos}" class="fav-item">
+            <div>
+                <strong th:text="${fav.nombreSendero}">Nombre Sendero</strong>
+                <div style="font-size: 0.8em; color: #888;" th:text="${fav.dificultad}">Dificultad</div>
+            </div>
+            <a th:href="@{'/senderos/detalle/' + ${fav.id}}" style="color: #2d5a27; font-weight: bold; text-decoration: none;">Ver más</a>
+        </div>
+    </div>
+
+    <!-- FOOTER NAVEGACIÓN -->
+    <div style="background: #fdfdfd; padding: 15px; text-align: center; border-top: 1px solid #eee;">
+        <a href="/" style="color: #666; text-decoration: none; font-size: 0.9em; font-weight: bold;">⬅ VOLVER AL MAPA PRINCIPAL</a>
+    </div>
+</div>
+
+<script>
+    function showTab(tabId) {
+        document.querySelectorAll('.content-section').forEach(section => {
+            section.classList.remove('active');
+        });
+        document.querySelectorAll('.tab-btn').forEach(btn => {
+            btn.classList.remove('active');
+        });
+
+        document.getElementById(tabId).classList.add('active');
+        event.currentTarget.classList.add('active');
+    }
+</script>
+
+</body>
+</html>
