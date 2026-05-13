@@ -52,6 +52,7 @@ public class SenderoController {
     }
 
     // 3. API: GUARDAR SENDERO DESDE EL MAPA (Lógica de dificultad inteligente)
+    // 3. API: GUARDAR SENDERO DESDE EL MAPA (Lógica reajustada)
     @PostMapping("/api/nuevo")
     @ResponseBody
     public String guardarDesdeMapa(@RequestBody Sendero sendero) {
@@ -64,24 +65,36 @@ public class SenderoController {
                     sendero.getLatitudFin(), sendero.getLongitudFin()
             );
 
+            // Extraer temperatura de forma más segura
             int temp = 22;
             try {
-                temp = Integer.parseInt(clima.replaceAll("[^0-9]", ""));
-            } catch(Exception e) { /* default 22 */ }
+                // Solo extraemos los primeros 2 dígitos para evitar errores con coordenadas
+                String tempNum = clima.replaceAll("[^0-9]", "");
+                if (tempNum.length() >= 2) {
+                    temp = Integer.parseInt(tempNum.substring(0, 2));
+                } else if (!tempNum.isEmpty()) {
+                    temp = Integer.parseInt(tempNum);
+                }
+            } catch(Exception e) { temp = 22; }
 
-            // Lógica de dificultad para principiantes (0,47km = Baja)
-            if (distanciaKm > 6.0 || temp >= 35) {
-                sendero.setDificultad("Alta");
-            } else if (distanciaKm > 2.0 || temp >= 30) {
-                sendero.setDificultad("Media");
-            } else {
-                sendero.setDificultad("Baja");
+            // --- LÓGICA BLINDADA ---
+            String dificultadFinal = "Baja"; // Por defecto
+
+            if (distanciaKm < 3.0) {
+                // SI MIDE MENOS DE 3KM ES BAJA, SIN IMPORTAR EL CLIMA
+                dificultadFinal = "Baja";
+            } else if (distanciaKm > 7.0 || temp >= 40) {
+                dificultadFinal = "Alta";
+            } else if (distanciaKm > 3.0 || temp >= 32) {
+                dificultadFinal = "Media";
             }
 
+            sendero.setDificultad(dificultadFinal);
             sendero.setAcceso(true);
             senderoRepository.save(sendero);
 
-            return "¡Sendero registrado! Distancia: " + String.format("%.2f", distanciaKm) + " km. UwU";
+            return "¡Sendero registrado! Distancia: " + String.format("%.2f", distanciaKm) +
+                    " km. Dificultad final: " + sendero.getDificultad() + " UwU";
         } catch (Exception e) {
             return "Error al guardar: " + e.getMessage();
         }
@@ -89,14 +102,14 @@ public class SenderoController {
 
     // 4. ELIMINAR SENDERO (Corregido para evitar el White Label Error)
     @GetMapping("/eliminar/{id}")
-    @Transactional // CRÍTICO: Para que todas las operaciones se hagan en una sola unidad
+    @Transactional // Esto asegura que si algo falla, no se borre nada a medias
     public String eliminarSendero(@PathVariable Long id) {
         try {
             Sendero sendero = senderoRepository.findById(id)
                     .orElseThrow(() -> new IllegalArgumentException("ID inválido:" + id));
 
-            // PASO A: Desvincular de favoritos para que NO de error de FK
-            // Buscamos a todos los usuarios que tengan este sendero como favorito
+            // PASO A: Rompemos el vínculo con los FAVORITOS de los usuarios
+            // Esto evita el error de la pantalla blanca (DataIntegrityViolation)
             List<Usuario> usuarios = usuarioRepository.findAll();
             for (Usuario u : usuarios) {
                 if (u.getFavoritos().contains(sendero)) {
@@ -105,24 +118,24 @@ public class SenderoController {
                 }
             }
 
-            // PASO B: Las opiniones NO se borran si el modelo está bien configurado.
-            // Si quieres que las opiniones se queden "huérfanas" (sin sendero),
-            // hay que poner el campo sendero_id a NULL en la tabla opiniones.
+            // PASO B: Las opiniones NO se borran.
+            // Las ponemos en NULL para que la opinión exista pero el sendero ya no.
             List<Opinion> opiniones = opinionRepository.findAll();
             for (Opinion op : opiniones) {
                 if (op.getSendero() != null && op.getSendero().getId().equals(id)) {
-                    op.setSendero(null); // El sendero desaparece, pero la opinión se queda
+                    op.setSendero(null);
                     opinionRepository.save(op);
                 }
             }
 
-            // PASO C: Ahora que nada apunta al ID del sendero, podemos borrarlo
+            // PASO C: Ahora que el sendero está "suelto", lo borramos de la base de datos
             senderoRepository.delete(sendero);
 
             return "redirect:/senderos";
         } catch (Exception e) {
-            // Si algo falla, redirigimos a la lista con un mensaje en lugar de mostrar la pantalla blanca
-            return "redirect:/senderos?error=no_se_pudo_borrar";
+            // Log del error para depuración
+            System.out.println("Error al borrar: " + e.getMessage());
+            return "redirect:/senderos?error=true";
         }
     }
 
@@ -161,18 +174,19 @@ public class SenderoController {
         Sendero sendero = senderoRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("ID inválido:" + id));
 
-        // Obtenemos al usuario para mostrar sus favoritos en la pestaña
-        Usuario usuario = usuarioRepository.findById(1L).orElseThrow();
+        // IMPORTANTE: Buscamos al usuario para que la pestaña de favoritos no salga vacía
+        Usuario usuario = usuarioRepository.findById(1L).orElse(new Usuario());
 
         String clima = weatherService.obtenerEstadoTiempo(sendero.getLatitud(), sendero.getLongitud());
         sendero.setEstadoMeteorologico(clima);
 
+        // Corregido para filtrar correctamente
         List<Opinion> opiniones = opinionRepository.findAll().stream()
                 .filter(o -> o.getSendero() != null && o.getSendero().getId().equals(id))
                 .collect(Collectors.toList());
 
         model.addAttribute("sendero", sendero);
-        model.addAttribute("usuario", usuario); // Mandamos el objeto usuario completo
+        model.addAttribute("usuario", usuario); // Clave para que funcione 'usuario.favoritos' en el HTML
         model.addAttribute("opiniones", opiniones);
         model.addAttribute("pymes", pymeRepository.findBySenderoId(id));
         model.addAttribute("usuarioId", 1L);

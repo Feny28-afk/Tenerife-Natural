@@ -164,6 +164,7 @@ fetch('http://localhost:8080/api/guaguas/paradas')
 });
 
 // --- SECCIÓN 3: CREACIÓN DE RUTAS ---
+// --- SECCIÓN 3: CREACIÓN DE RUTAS ---
 let puntosRuta = [];
 let marcadoresTemporales = [];
 let lineaTemporal = null;
@@ -192,13 +193,90 @@ map.on('click', function(e) {
             dashArray: '10, 10'
         }).addTo(map);
 
-        // Calculamos distancia aproximada para sugerir dificultad
-        const dist = Math.sqrt(Math.pow(puntosRuta[1][0]-puntosRuta[0][0], 2) + Math.pow(puntosRuta[1][1]-puntosRuta[0][1], 2));
-        const dificultadSugerida = dist > 0.05 ? "Alta" : "Media";
+        // 1. Cálculo de distancia real (Leaflet usa la curvatura de la tierra)
+        const puntoA = L.latLng(puntosRuta[0][0], puntosRuta[0][1]);
+        const puntoB = L.latLng(puntosRuta[1][0], puntosRuta[1][1]);
 
-        setTimeout(() => confirmarNuevaRuta(puntosRuta, dificultadSugerida), 500);
+        const distanciaMetros = puntoA.distanceTo(puntoB);
+        const distanciaKm = distanciaMetros / 1000;
+
+        // 2. Lógica de dificultad coherente con el servidor
+        let dificultadSugerida = "Baja";
+
+        if (distanciaKm > 7.0) {
+            dificultadSugerida = "Alta";
+        } else if (distanciaKm > 3.0) {
+            dificultadSugerida = "Media";
+        } else {
+            dificultadSugerida = "Baja";
+        }
+
+        // Enviamos la distancia al prompt para informar al usuario
+        setTimeout(() => confirmarNuevaRuta(puntosRuta, dificultadSugerida, distanciaKm), 500);
     }
 });
+
+// Asegúrate de que tu función confirmarNuevaRuta reciba la distanciaKm así:
+function confirmarNuevaRuta(puntos, dificultadSugerida, distanciaKm) {
+    const nombre = prompt(`Ruta detectada: ${distanciaKm.toFixed(2)} km.\n¿Nombre del sendero? UwU\n(Dificultad sugerida: ${dificultadSugerida})`);
+
+    if (nombre) {
+        const nuevoSendero = {
+            nombreSendero: nombre,
+            latitud: puntos[0][0],
+            longitud: puntos[0][1],
+            latitudFin: puntos[1][0],
+            longitudFin: puntos[1][1],
+            dificultad: dificultadSugerida, // Se envía la que calculamos arriba
+            acceso: true
+        };
+
+        fetch('http://localhost:8080/senderos/api/nuevo', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(nuevoSendero)
+        })
+        .then(res => res.text())
+        .then(msg => {
+            alert(msg);
+            location.reload();
+        })
+        .catch(err => alert("Error: " + err));
+    } else {
+        limpiarRutaTemporal();
+    }
+}
+
+function confirmarNuevaRuta(puntos, dificultadSugerida, distanciaKm) {
+    // Mostramos la distancia real en el prompt para que el usuario esté informado
+    const nombre = prompt(`Has trazado una ruta de ${distanciaKm.toFixed(2)} km.\n¿Qué nombre le pondrás? UwU\n(Dificultad sugerida: ${dificultadSugerida})`);
+
+    if (nombre) {
+        const nuevoSendero = {
+            nombreSendero: nombre,
+            latitud: puntos[0][0],
+            longitud: puntos[0][1],
+            latitudFin: puntos[1][0],
+            longitudFin: puntos[1][1],
+            dificultad: dificultadSugerida,
+            acceso: true
+        };
+
+        fetch('http://localhost:8080/senderos/api/nuevo', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(nuevoSendero)
+        })
+        .then(res => res.text())
+        .then(msg => {
+            alert(msg);
+            location.reload(); // Recarga para ver el nuevo marcador oficial
+        })
+        .catch(err => alert("Error al conectar con el servidor: " + err));
+    } else {
+        limpiarRutaTemporal();
+    }
+}
 
 function limpiarRutaTemporal() {
     marcadoresTemporales.forEach(m => map.removeLayer(m));
@@ -242,3 +320,12 @@ function marcarFavorito(senderoId) {
     fetch(`/senderos/favorito/${senderoId}`, { method: 'POST', body: params })
     .then(res => res.text()).then(data => alert(data));
 }
+
+function cerrarSesion() {
+                // Creamos un formulario dinámico que apunte a /logout
+                const form = document.createElement('form');
+                form.method = 'POST';
+                form.action = '/logout';
+                document.body.appendChild(form);
+                form.submit(); // Lo enviamos
+            }
