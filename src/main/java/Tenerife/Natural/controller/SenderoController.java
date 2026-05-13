@@ -22,7 +22,11 @@ public class SenderoController {
     @Autowired private PymeRepository pymeRepository;
     @Autowired private WeatherService weatherService;
 
-    // 1. LISTAR SENDEROS (Vista Unificada)
+    @GetMapping("/sugerencias")
+    public String mostrarSugerencias() {
+        return "senderos/sugerencias";
+    }
+
     @GetMapping
     public String listarSenderos(Model model) {
         List<Sendero> senderos = senderoRepository.findAll();
@@ -33,26 +37,20 @@ public class SenderoController {
             }
         }
         model.addAttribute("senderos", senderos);
-        model.addAttribute("sendero", new Sendero()); // Objeto para el formulario en la misma página
+        model.addAttribute("sendero", new Sendero());
         return "senderos/lista";
     }
 
-    // 2. GUARDAR SENDERO (Desde formulario HTML unificado)
     @PostMapping("/guardar")
     public String guardarSendero(@ModelAttribute("sendero") Sendero sendero) {
         String climaActual = weatherService.obtenerEstadoTiempo(sendero.getLatitud(), sendero.getLongitud());
         sendero.setEstadoMeteorologico(climaActual);
-
-        // Asignación por defecto si viene del formulario simple
         if (sendero.getDificultad() == null) sendero.setDificultad("Baja");
         sendero.setAcceso(true);
-
         senderoRepository.save(sendero);
         return "redirect:/senderos";
     }
 
-    // 3. API: GUARDAR SENDERO DESDE EL MAPA (Lógica de dificultad inteligente)
-    // 3. API: GUARDAR SENDERO DESDE EL MAPA (Lógica reajustada)
     @PostMapping("/api/nuevo")
     @ResponseBody
     public String guardarDesdeMapa(@RequestBody Sendero sendero) {
@@ -65,10 +63,8 @@ public class SenderoController {
                     sendero.getLatitudFin(), sendero.getLongitudFin()
             );
 
-            // Extraer temperatura de forma más segura
             int temp = 22;
             try {
-                // Solo extraemos los primeros 2 dígitos para evitar errores con coordenadas
                 String tempNum = clima.replaceAll("[^0-9]", "");
                 if (tempNum.length() >= 2) {
                     temp = Integer.parseInt(tempNum.substring(0, 2));
@@ -77,16 +73,19 @@ public class SenderoController {
                 }
             } catch(Exception e) { temp = 22; }
 
-            // --- LÓGICA BLINDADA ---
-            String dificultadFinal = "Baja"; // Por defecto
+            // --- LÓGICA DE 1 KM ---
+            String dificultadFinal = "Baja";
 
-            if (distanciaKm < 3.0) {
-                // SI MIDE MENOS DE 3KM ES BAJA, SIN IMPORTAR EL CLIMA
+            if (distanciaKm > 1.0) {
+                // Solo si supera 1km evaluamos el clima y distancias mayores
+                if (distanciaKm > 7.0 || temp >= 40) {
+                    dificultadFinal = "Alta";
+                } else if (distanciaKm > 3.0 || temp >= 32) {
+                    dificultadFinal = "Media";
+                }
+            } else {
+                // Paseo corto: Siempre Baja
                 dificultadFinal = "Baja";
-            } else if (distanciaKm > 7.0 || temp >= 40) {
-                dificultadFinal = "Alta";
-            } else if (distanciaKm > 3.0 || temp >= 32) {
-                dificultadFinal = "Media";
             }
 
             sendero.setDificultad(dificultadFinal);
@@ -100,16 +99,13 @@ public class SenderoController {
         }
     }
 
-    // 4. ELIMINAR SENDERO (Corregido para evitar el White Label Error)
     @GetMapping("/eliminar/{id}")
-    @Transactional // Esto asegura que si algo falla, no se borre nada a medias
+    @Transactional
     public String eliminarSendero(@PathVariable Long id) {
         try {
             Sendero sendero = senderoRepository.findById(id)
                     .orElseThrow(() -> new IllegalArgumentException("ID inválido:" + id));
 
-            // PASO A: Rompemos el vínculo con los FAVORITOS de los usuarios
-            // Esto evita el error de la pantalla blanca (DataIntegrityViolation)
             List<Usuario> usuarios = usuarioRepository.findAll();
             for (Usuario u : usuarios) {
                 if (u.getFavoritos().contains(sendero)) {
@@ -118,8 +114,6 @@ public class SenderoController {
                 }
             }
 
-            // PASO B: Las opiniones NO se borran.
-            // Las ponemos en NULL para que la opinión exista pero el sendero ya no.
             List<Opinion> opiniones = opinionRepository.findAll();
             for (Opinion op : opiniones) {
                 if (op.getSendero() != null && op.getSendero().getId().equals(id)) {
@@ -128,18 +122,13 @@ public class SenderoController {
                 }
             }
 
-            // PASO C: Ahora que el sendero está "suelto", lo borramos de la base de datos
             senderoRepository.delete(sendero);
-
             return "redirect:/senderos";
         } catch (Exception e) {
-            // Log del error para depuración
-            System.out.println("Error al borrar: " + e.getMessage());
             return "redirect:/senderos?error=true";
         }
     }
 
-    // 5. ALTERNAR ACCESO
     @GetMapping("/alternar-acceso/{id}")
     public String alternarAcceso(@PathVariable Long id) {
         Sendero sendero = senderoRepository.findById(id)
@@ -149,7 +138,6 @@ public class SenderoController {
         return "redirect:/senderos";
     }
 
-    // 6. GUARDAR FAVORITO
     @PostMapping("/favorito/{senderoId}")
     @ResponseBody
     public String añadirFavorito(@PathVariable Long senderoId, @RequestParam Long usuarioId) {
@@ -168,25 +156,21 @@ public class SenderoController {
         }
     }
 
-    // 7. VER DETALLE (Actualizado para incluir al usuario y sus favoritos)
     @GetMapping("/detalle/{id}")
     public String verDetalle(@PathVariable Long id, Model model) {
         Sendero sendero = senderoRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("ID inválido:" + id));
 
-        // IMPORTANTE: Buscamos al usuario para que la pestaña de favoritos no salga vacía
         Usuario usuario = usuarioRepository.findById(1L).orElse(new Usuario());
-
         String clima = weatherService.obtenerEstadoTiempo(sendero.getLatitud(), sendero.getLongitud());
         sendero.setEstadoMeteorologico(clima);
 
-        // Corregido para filtrar correctamente
         List<Opinion> opiniones = opinionRepository.findAll().stream()
                 .filter(o -> o.getSendero() != null && o.getSendero().getId().equals(id))
                 .collect(Collectors.toList());
 
         model.addAttribute("sendero", sendero);
-        model.addAttribute("usuario", usuario); // Clave para que funcione 'usuario.favoritos' en el HTML
+        model.addAttribute("usuario", usuario);
         model.addAttribute("opiniones", opiniones);
         model.addAttribute("pymes", pymeRepository.findBySenderoId(id));
         model.addAttribute("usuarioId", 1L);
@@ -194,7 +178,6 @@ public class SenderoController {
         return "senderos/detalle";
     }
 
-    // 8. PROCESAR NUEVA OPINIÓN
     @PostMapping("/opiniones/guardar")
     public String guardarOpinion(@RequestParam Long senderoId,
                                  @RequestParam int estrellas,
@@ -207,23 +190,19 @@ public class SenderoController {
         opinionRepository.save(nuevaOpinion);
         return "redirect:/senderos/detalle/" + senderoId;
     }
-    // Nuevo método para ver la lista detallada de favoritos
+
     @GetMapping("/favoritos/lista")
     public String listarFavoritosDetallados(Model model) {
         Usuario usuario = usuarioRepository.findById(1L).orElseThrow();
         List<Sendero> favoritos = usuario.getFavoritos();
-
         for (Sendero s : favoritos) {
             String clima = weatherService.obtenerEstadoTiempo(s.getLatitud(), s.getLongitud());
             s.setEstadoMeteorologico(clima);
         }
-
         model.addAttribute("favoritos", favoritos);
-        // ANTES: return "senderos/favoritos_detalle";
-        return "senderos/favoritos"; // AHORA: Coincide con tu nuevo nombre de archivo
+        return "senderos/favoritos";
     }
 
-    // --- UTILIDAD: FÓRMULA HAVERSINE ---
     private double calcularDistancia(double lat1, double lon1, double lat2, double lon2) {
         double radioTierra = 6371;
         double dLat = Math.toRadians(lat2 - lat1);
