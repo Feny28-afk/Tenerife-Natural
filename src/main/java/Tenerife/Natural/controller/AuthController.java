@@ -30,9 +30,18 @@ public class AuthController {
     }
 
     @PostMapping("/registro")
-    public String registrarUsuario(Usuario usuario) {
+    public String registrarUsuario(Usuario usuario, Model model) {
+        // Validación personalizada de correo UwU
+        String email = usuario.getEmail();
+        if (email == null || !email.contains("@") || !email.endsWith(".com")) {
+            model.addAttribute("error", "El correo debe contener @ y terminar en .com");
+            return "registro"; // Recarga la página de registro con el error
+        }
 
+        // Ciframos la contraseña y guardamos
         usuario.setPassword(passwordEncoder.encode(usuario.getPassword()));
+        usuario.setNivelFisico(1); // Nivel principiante por defecto
+
         usuarioRepository.save(usuario);
         return "redirect:/login?success";
     }

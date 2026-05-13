@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <title>Registro - Tenerife Natural 🌿</title>
+    <style>
+        body { font-family: sans-serif; background: #e8f5e9; display: flex; align-items: center; justify-content: center; height: 100vh; margin: 0; }
+        .card { background: white; padding: 30px; border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.1); width: 300px; text-align: center; }
+        h2 { color: #2e7d32; }
+        input { width: 90%; padding: 10px; margin: 10px 0; border: 1px solid #ddd; border-radius: 5px; }
+        button { background: #2e7d32; color: white; border: none; padding: 10px; width: 100%; border-radius: 5px; cursor: pointer; font-weight: bold; }
+        .error { color: red; font-size: 0.8em; }
+    </style>
+</head>
+<body>
+<div class="card">
+    <h2>Únete a la Aventura 🌿</h2>
+    <form action="/registro" method="POST">
+        <input type="text" name="username" placeholder="Nombre de usuario" required>
+        <input type="email" name="email" placeholder="Correo (@ y .com)" required>
+        <input type="password" name="password" placeholder="Contraseña" required>
+        <button type="submit">Registrarse </button>
+    </form>
+    <p><a href="/login" style="color: #666; font-size: 0.9em;">¿Ya tienes cuenta? Entra aquí</a></p>
+</div>
+</body>
+</html>

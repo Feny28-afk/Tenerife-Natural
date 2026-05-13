@@ -2,67 +2,101 @@
 <html xmlns:th="http://www.thymeleaf.org">
 <head>
     <meta charset="UTF-8">
-    <title>Gestión de Senderos</title>
+    <title>Panel de Control - Tenerife Natural</title>
     <style>
-        body { font-family: Arial, sans-serif; margin: 20px; }
-        table { border-collapse: collapse; width: 100%; margin-top: 20px; }
-        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; }
-        th { background-color: #4CAF50; color: white; }
-        .btn { padding: 8px 12px; text-decoration: none; color: white; border-radius: 3px; display: inline-block; font-size: 14px; }
-        .btn-nuevo { background-color: #2196F3; }
-        .btn-eliminar { background-color: #f44336; }
-        .btn-acceso { background-color: #ff9800; }
-        .btn-mapa { background-color: #9c27b0; margin-left: 10px; }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 40px; background-color: #f4f7f6; }
+        .container { max-width: 1000px; margin: auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
+        h1 { color: #2e7d32; border-bottom: 2px solid #e8f5e9; padding-bottom: 10px; margin-bottom: 20px; }
 
-        /* Estilo para el nuevo botón de sugerencias UwU */
-        .btn-sugerencias {
-            background-color: #2e7d32;
-            margin-left: 10px;
-            font-weight: bold;
-            box-shadow: 0 2px 4px rgba(0,0,0,0.2);
-        }
-        .btn-sugerencias:hover { background-color: #1b5e20; }
+        /* Botones de navegación superior */
+        .header-nav { margin-bottom: 20px; display: flex; gap: 10px; }
 
-        .header-actions { margin-bottom: 20px; }
+        /* Formulario Unificado */
+        .form-section { background: #e8f5e9; padding: 20px; border-radius: 8px; margin-bottom: 30px; display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap; }
+        .form-group { display: flex; flex-direction: column; gap: 5px; }
+        input { padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
+
+        /* Tabla */
+        table { border-collapse: collapse; width: 100%; }
+        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; }
+        th { background-color: #2e7d32; color: white; }
+        tr:hover { background-color: #f9f9f9; }
+
+        /* Botones */
+        .btn { padding: 8px 15px; text-decoration: none; color: white; border-radius: 5px; font-size: 13px; border: none; cursor: pointer; transition: 0.3s; display: inline-block; }
+        .btn-save { background-color: #2e7d32; font-weight: bold; }
+        .btn-fav { background-color: #ffca28; color: #333 !important; font-weight: bold; }
+        .btn-delete { background-color: #d32f2f; }
+        .btn-access { background-color: #ffa000; }
+        .btn-info { background-color: #455a64; }
+        .btn:hover { opacity: 0.8; transform: translateY(-1px); }
     </style>
 </head>
 <body>
-<h1>Gestión de Senderos Naturales 🌿</h1>
 
-<div class="header-actions">
-    <a th:href="@{/senderos/nuevo}" class="btn btn-nuevo">Añadir Nuevo Sendero</a>
-    <a href="/index.html" class="btn btn-mapa">Ver Mapa Interactivo</a>
+<div class="container">
+    <h1>Gestión de Senderos 🌿</h1>
 
-    <!-- NUEVO BOTÓN PARA EL SPRINT 8 -->
-    <a th:href="@{/senderos/sugerencias}" class="btn btn-sugerencias">✨ Ver Sugerencias (Pymes)</a>
+    <div class="header-nav">
+        <a href="/index.html" class="btn btn-info">🗺️ Ver Mapa</a>
+        <a th:href="@{/senderos/favoritos/lista}" class="btn btn-fav">⭐ Mis Favoritos Pro</a>
+    </div>
+
+    <div class="form-section">
+        <form th:action="@{/senderos/guardar}" method="post" style="display: contents;">
+            <div class="form-group">
+                <label>Nombre del Sendero</label>
+                <input type="text" name="nombreSendero" placeholder="Ej: Anaga" required>
+            </div>
+            <div class="form-group">
+                <label>Latitud</label>
+                <input type="text" name="latitud" placeholder="28.4..." required>
+            </div>
+            <div class="form-group">
+                <label>Longitud</label>
+                <input type="text" name="longitud" placeholder="-16.3..." required>
+            </div>
+            <button type="submit" class="btn btn-save">➕ Añadir Sendero</button>
+        </form>
+    </div>
+
+    <table>
+        <thead>
+        <tr>
+            <th>Nombre</th>
+            <th>Dificultad</th>
+            <th>Clima</th>
+            <th>Acceso</th>
+            <th>Acciones</th>
+        </tr>
+        </thead>
+        <tbody>
+        <tr th:each="sendero : ${senderos}">
+            <td th:text="${sendero.nombreSendero}" style="font-weight: bold;"></td>
+            <td>
+                <span th:text="${sendero.dificultad}"></span>
+            </td>
+            <td th:text="${sendero.estadoMeteorologico}"></td>
+            <td>
+                <span th:text="${sendero.acceso ? '✅ Abierto' : '❌ Cerrado'}"></span>
+            </td>
+            <td>
+                <div style="display: flex; gap: 5px;">
+                    <a th:href="@{/senderos/detalle/{id}(id=${sendero.id})}" class="btn btn-info">Detalle</a>
+                    <a th:href="@{/senderos/alternar-acceso/{id}(id=${sendero.id})}" class="btn btn-access">Alternar</a>
+                    <a th:href="@{/senderos/eliminar/{id}(id=${sendero.id})}"
+                       class="btn btn-delete"
+                       onclick="return confirm('¿Seguro que quieres borrarlo? Se eliminarán también sus favoritos y opiniones.');">Borrar</a>
+                </div>
+            </td>
+        </tr>
+        </tbody>
+    </table>
+
+    <div style="margin-top: 25px; border-top: 1px solid #eee; padding-top: 15px;">
+        <a href="/index.html" style="color: #2e7d32; text-decoration: none; font-weight: bold;">⬅ Volver al Mapa Interactivo</a>
+    </div>
 </div>
 
-<table>
-    <thead>
-    <tr>
-        <th>ID</th>
-        <th>Nombre</th>
-        <th>Dificultad</th>
-        <th>Clima Actual</th>
-        <th>Acceso Abierto</th>
-        <th>Acciones</th>
-    </tr>
-    </thead>
-    <tbody>
-    <tr th:each="sendero : ${senderos}">
-        <td th:text="${sendero.id}">1</td>
-        <!-- Usamos nombreSendero como en tu Entity -->
-        <td th:text="${sendero.nombreSendero}">Teide</td>
-        <td th:text="${sendero.dificultad}">Alta</td>
-        <td th:text="${sendero.estadoMeteorologico}">Soleado</td>
-        <td th:text="${sendero.acceso ? 'Sí' : 'No'}">Sí</td>
-        <td>
-            <a th:href="@{/senderos/detalle/{id}(id=${sendero.id})}" class="btn btn-nuevo" style="background-color: #607d8b;">Ver Detalle</a>
-            <a th:href="@{/senderos/alternar-acceso/{id}(id=${sendero.id})}" class="btn btn-acceso">Alternar Acceso</a>
-            <a th:href="@{/senderos/eliminar/{id}(id=${sendero.id})}" class="btn btn-eliminar" onclick="return confirm('¿Seguro que quieres borrarlo?');">Eliminar</a>
-        </td>
-    </tr>
-    </tbody>
-</table>
 </body>
 </html>

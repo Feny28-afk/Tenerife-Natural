@@ -20,6 +20,8 @@ public class Usuario {
     // Sprint 6: Nivel físico del usuario (1: Bajo, 2: Medio, 3: Alto)
     private int nivelFisico;
 
+    private String email;
+
     // Sprint 6: Relación de muchos a muchos para guardar rutas favoritas
     @ManyToMany(fetch = FetchType.LAZY)
     @JoinTable(
@@ -46,4 +48,7 @@ public class Usuario {
 
     public List<Sendero> getFavoritos() { return favoritos; }
     public void setFavoritos(List<Sendero> favoritos) { this.favoritos = favoritos; }
+
+    public String getEmail() { return email; }
+    public void setEmail(String email) { this.email = email; }
 }

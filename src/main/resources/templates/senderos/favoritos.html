@@ -1,0 +1,42 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>Mis Rutas Favoritas</title>
+    <link rel="stylesheet" th:href="@{/css/estilos.css}">
+</head>
+<body style="background: #f4f7f6; font-family: 'Segoe UI', sans-serif;">
+
+<div style="max-width: 900px; margin: 40px auto; padding: 20px;">
+    <h1 style="color: #2e7d32; border-bottom: 3px solid #2e7d32; padding-bottom: 10px;">
+        ⭐ Mis Senderos Favoritos
+    </h1>
+
+    <div th:if="${#lists.isEmpty(favoritos)}" style="text-align: center; margin-top: 50px;">
+        <p>Aún no tienes rutas guardadas. ¡Explora el mapa! UwU</p>
+        <a href="/senderos" class="btn">Volver al Mapa</a>
+    </div>
+
+    <div th:each="s : ${favoritos}"
+         style="background: white; border-radius: 12px; padding: 20px; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.1); display: flex; justify-content: space-between; align-items: center;">
+
+        <div>
+            <h2 th:text="${s.nombreSendero}" style="margin: 0; color: #1b5e20;"></h2>
+            <p style="margin: 5px 0;">
+                    <span th:text="'📊 Dificultad: ' + ${s.dificultad}"
+                          th:style="${s.dificultad == 'Alta' ? 'color: red' : 'color: green'}"></span> |
+                <span th:text="'🌡️ Clima: ' + ${s.estadoMeteorologico}"></span>
+            </p>
+            <small th:text="'📍 Inicio: ' + ${s.latitud} + ', ' + ${s.longitud}"></small>
+        </div>
+
+        <div style="display: flex; gap: 10px;">
+            <a th:href="@{/senderos/detalle/{id}(id=${s.id})}"
+               style="background: #2e7d32; color: white; padding: 10px 15px; border-radius: 6px; text-decoration: none;">Ver Guía</a>
+
+            <a th:href="@{/senderos(focus=${s.id})}"
+               style="background: #0288d1; color: white; padding: 10px 15px; border-radius: 6px; text-decoration: none;">Ver en Mapa</a>
+        </div>
+    </div>
+</div>
+</body>
+</html>
