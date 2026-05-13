@@ -7,25 +7,18 @@
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 40px; background-color: #f4f7f6; }
         .container { max-width: 1000px; margin: auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         h1 { color: #2e7d32; border-bottom: 2px solid #e8f5e9; padding-bottom: 10px; margin-bottom: 20px; }
-
-        /* Botones de navegación superior */
         .header-nav { margin-bottom: 20px; display: flex; gap: 10px; }
-
-        /* Formulario Unificado */
         .form-section { background: #e8f5e9; padding: 20px; border-radius: 8px; margin-bottom: 30px; display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap; }
         .form-group { display: flex; flex-direction: column; gap: 5px; }
         input { padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
-
-        /* Tabla */
         table { border-collapse: collapse; width: 100%; }
         th, td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; }
         th { background-color: #2e7d32; color: white; }
         tr:hover { background-color: #f9f9f9; }
-
-        /* Botones */
         .btn { padding: 8px 15px; text-decoration: none; color: white; border-radius: 5px; font-size: 13px; border: none; cursor: pointer; transition: 0.3s; display: inline-block; }
         .btn-save { background-color: #2e7d32; font-weight: bold; }
         .btn-fav { background-color: #ffca28; color: #333 !important; font-weight: bold; }
+        .btn-pyme { background-color: #1976d2; font-weight: bold; } /* Color azul para PYMEs */
         .btn-delete { background-color: #d32f2f; }
         .btn-access { background-color: #ffa000; }
         .btn-info { background-color: #455a64; }
@@ -39,6 +32,7 @@
 
     <div class="header-nav">
         <a th:href="@{/senderos/favoritos/lista}" class="btn btn-fav">⭐ Mis Favoritos Pro</a>
+        <a href="/sugerencia.html" class="btn btn-pyme">🏢 Sugerencias PYMEs</a>
     </div>
 
     <div class="form-section">
@@ -72,20 +66,14 @@
         <tbody>
         <tr th:each="sendero : ${senderos}">
             <td th:text="${sendero.nombreSendero}" style="font-weight: bold;"></td>
-            <td>
-                <span th:text="${sendero.dificultad}"></span>
-            </td>
+            <td><span th:text="${sendero.dificultad}"></span></td>
             <td th:text="${sendero.estadoMeteorologico}"></td>
-            <td>
-                <span th:text="${sendero.acceso ? '✅ Abierto' : '❌ Cerrado'}"></span>
-            </td>
+            <td><span th:text="${sendero.acceso ? '✅ Abierto' : '❌ Cerrado'}"></span></td>
             <td>
                 <div style="display: flex; gap: 5px;">
                     <a th:href="@{/senderos/detalle/{id}(id=${sendero.id})}" class="btn btn-info">Detalle</a>
                     <a th:href="@{/senderos/alternar-acceso/{id}(id=${sendero.id})}" class="btn btn-access">Alternar</a>
-                    <a th:href="@{/senderos/eliminar/{id}(id=${sendero.id})}"
-                       class="btn btn-delete"
-                       onclick="return confirm('¿Seguro que quieres borrarlo? Se eliminarán también sus favoritos y opiniones.');">Borrar</a>
+                    <a th:href="@{/senderos/eliminar/{id}(id=${sendero.id})}" class="btn btn-delete" onclick="return confirm('¿Seguro?');">Borrar</a>
                 </div>
             </td>
         </tr>

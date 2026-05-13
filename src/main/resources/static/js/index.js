@@ -165,6 +165,7 @@ fetch('http://localhost:8080/api/guaguas/paradas')
 
 // --- SECCIÓN 3: CREACIÓN DE RUTAS ---
 // --- SECCIÓN 3: CREACIÓN DE RUTAS ---
+// --- SECCIÓN 3: CREACIÓN DE RUTAS ---
 let puntosRuta = [];
 let marcadoresTemporales = [];
 let lineaTemporal = null;
@@ -193,25 +194,24 @@ map.on('click', function(e) {
             dashArray: '10, 10'
         }).addTo(map);
 
-        // 1. Cálculo de distancia real (Leaflet usa la curvatura de la tierra)
+        // Cálculo de distancia real
         const puntoA = L.latLng(puntosRuta[0][0], puntosRuta[0][1]);
         const puntoB = L.latLng(puntosRuta[1][0], puntosRuta[1][1]);
+        const distanciaKm = puntoA.distanceTo(puntoB) / 1000;
 
-        const distanciaMetros = puntoA.distanceTo(puntoB);
-        const distanciaKm = distanciaMetros / 1000;
-
-        // 2. Lógica de dificultad coherente con el servidor
+        // LÓGICA: Solo aplica dificultad si supera el kilómetro
         let dificultadSugerida = "Baja";
 
-        if (distanciaKm > 7.0) {
-            dificultadSugerida = "Alta";
-        } else if (distanciaKm > 3.0) {
-            dificultadSugerida = "Media";
+        if (distanciaKm > 1.0) {
+            if (distanciaKm > 7.0) {
+                dificultadSugerida = "Alta";
+            } else if (distanciaKm > 3.0) {
+                dificultadSugerida = "Media";
+            }
         } else {
-            dificultadSugerida = "Baja";
+            dificultadSugerida = "Baja"; // Forzado para trayectos cortos
         }
 
-        // Enviamos la distancia al prompt para informar al usuario
         setTimeout(() => confirmarNuevaRuta(puntosRuta, dificultadSugerida, distanciaKm), 500);
     }
 });
