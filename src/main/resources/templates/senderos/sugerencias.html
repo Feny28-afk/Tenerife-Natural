@@ -8,19 +8,24 @@
         .card-sug { transition: transform 0.2s; border: none; box-shadow: 0 4px 8px rgba(0,0,0,0.1); }
         .card-sug:hover { transform: translateY(-5px); }
         .pyme-badge { background-color: #f8f9fa; border: 1px solid #dee2e6; padding: 5px 10px; border-radius: 15px; font-size: 0.85rem; display: inline-block; margin: 2px; }
+        .btn-back { background-color: #2e7d32; color: white; font-weight: bold; margin-bottom: 20px; }
+        .btn-back:hover { background-color: #1b5e20; color: white; }
     </style>
 </head>
 <body class="bg-light">
 
 <div class="container py-5">
-    <h1 class="text-center mb-5">Senderos Recomendados para ti</h1>
+
+    <div class="mb-4">
+        <a th:href="@{/senderos}" class="btn btn-back">⬅ Volver a Gestión de Senderos</a>
+    </div>
+
+    <h1 class="text-center mb-5">Senderos Recomendados para ti 🌿</h1>
 
     <div class="row">
-        <!-- Bucle principal: recorre la lista 'sugerencias' enviada desde el controlador -->
         <div class="col-md-4 mb-4" th:each="sendero : ${sugerencias}">
             <div class="card h-100 card-sug">
                 <div class="card-body">
-                    <!-- CORRECCIÓN: Usamos 'nombreSendero' como está en tu clase Java -->
                     <h5 class="card-title text-primary" th:text="${sendero.nombreSendero}">Nombre del Sendero</h5>
 
                     <p class="card-text text-muted small">
@@ -39,7 +44,6 @@
                     <hr>
                     <h6>Pymes cercanas:</h6>
                     <div th:if="${pymesPorSendero != null and pymesPorSendero[sendero.id] != null}">
-                        <!-- Itera sobre el mapa usando el ID del sendero -->
                         <div th:each="pyme : ${pymesPorSendero[sendero.id]}" class="pyme-badge">
                             🛍️ <span th:text="${pyme.nombre}">Nombre Pyme</span>
                         </div>
@@ -53,6 +57,10 @@
                 </div>
             </div>
         </div>
+    </div>
+
+    <div class="text-center mt-5">
+        <a th:href="@{/senderos}" class="text-muted text-decoration-none">Regresar al panel de control</a>
     </div>
 </div>
 
