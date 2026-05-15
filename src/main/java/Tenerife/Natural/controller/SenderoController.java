@@ -8,6 +8,8 @@ import org.springframework.stereotype.Controller;
 import org.springframework.ui.Model;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.transaction.annotation.Transactional;
+import java.security.Principal; // Este es el que hace que funcione .getName()
+import org.springframework.ui.Model;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -156,12 +158,15 @@ public class SenderoController {
         }
     }
 
+    // --- CAMBIO EN DETALLE ---
     @GetMapping("/detalle/{id}")
-    public String verDetalle(@PathVariable Long id, Model model) {
+    public String verDetalle(@PathVariable Long id, Model model, Principal principal) {
         Sendero sendero = senderoRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("ID inválido:" + id));
 
-        Usuario usuario = usuarioRepository.findById(1L).orElse(new Usuario());
+        // Buscamos al usuario real de la sesión, no al 1L
+        Usuario usuario = usuarioRepository.findByUsername(principal.getName()).orElse(new Usuario());
+
         String clima = weatherService.obtenerEstadoTiempo(sendero.getLatitud(), sendero.getLongitud());
         sendero.setEstadoMeteorologico(clima);
 
@@ -170,31 +175,39 @@ public class SenderoController {
                 .collect(Collectors.toList());
 
         model.addAttribute("sendero", sendero);
-        model.addAttribute("usuario", usuario);
+        model.addAttribute("usuario", usuario); // El usuario real para el HTML
         model.addAttribute("opiniones", opiniones);
         model.addAttribute("pymes", pymeRepository.findBySenderoId(id));
-        model.addAttribute("usuarioId", 1L);
 
         return "senderos/detalle";
     }
 
+    // --- CAMBIO EN GUARDAR OPINIÓN ---
     @PostMapping("/opiniones/guardar")
     public String guardarOpinion(@RequestParam Long senderoId,
                                  @RequestParam int estrellas,
-                                 @RequestParam String comentario) {
+                                 @RequestParam String comentario,
+                                 Principal principal) { // Añadimos Principal
         Opinion nuevaOpinion = new Opinion();
         nuevaOpinion.setEstrellas(estrellas);
         nuevaOpinion.setComentario(comentario);
         nuevaOpinion.setSendero(senderoRepository.findById(senderoId).orElse(null));
-        nuevaOpinion.setUsuario(usuarioRepository.findById(1L).orElse(null));
+
+        // Buscamos al usuario de la sesión
+        Usuario usuarioActual = usuarioRepository.findByUsername(principal.getName()).orElseThrow();
+        nuevaOpinion.setUsuario(usuarioActual);
+
         opinionRepository.save(nuevaOpinion);
         return "redirect:/senderos/detalle/" + senderoId;
     }
 
+    // --- CAMBIO EN LISTA FAVORITOS ---
     @GetMapping("/favoritos/lista")
-    public String listarFavoritosDetallados(Model model) {
-        Usuario usuario = usuarioRepository.findById(1L).orElseThrow();
+    public String listarFavoritosDetallados(Model model, Principal principal) {
+        // Usamos el usuario de la sesión
+        Usuario usuario = usuarioRepository.findByUsername(principal.getName()).orElseThrow();
         List<Sendero> favoritos = usuario.getFavoritos();
+
         for (Sendero s : favoritos) {
             String clima = weatherService.obtenerEstadoTiempo(s.getLatitud(), s.getLongitud());
             s.setEstadoMeteorologico(clima);

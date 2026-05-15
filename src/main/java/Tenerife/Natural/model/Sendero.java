@@ -22,16 +22,23 @@ public class Sendero {
     private double latitudFin;
     private double longitudFin;
 
-    // Relación inversa para gestionar el borrado de favoritos sin errores de SQL
+    // --- NUEVO CAMPO PARA LOS KM ---
+    private Double distancia;
+
+    // Relación inversa
     @ManyToMany(mappedBy = "favoritos", cascade = {CascadeType.PERSIST, CascadeType.MERGE})
     private List<Usuario> usuariosQueMeTienenComoFavorito;
 
     @OneToMany(mappedBy = "sendero")
-    private List<Opinion> opiniones; // Sin cascade = REMOVE para que no se borren al borrar el sendero
+    private List<Opinion> opiniones;
 
     public Sendero() {}
 
-    // Getters y Setters
+    // --- GETTERS Y SETTERS NUEVOS ---
+    public Double getDistancia() { return distancia; }
+    public void setDistancia(Double distancia) { this.distancia = distancia; }
+
+    // --- RESTO DE GETTERS Y SETTERS QUE YA TENÍAS ---
     public Long getId() { return id; }
     public void setId(Long id) { this.id = id; }
 

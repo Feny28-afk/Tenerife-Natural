@@ -9,6 +9,7 @@ import Tenerife.Natural.repository.UsuarioRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.web.bind.annotation.*;
 
+import java.security.Principal; // IMPORTANTE: Para obtener el usuario en sesión
 import java.util.List;
 
 @RestController
@@ -25,18 +26,21 @@ public class OpinionController {
     private UsuarioRepository usuarioRepository;
 
     // 1. GUARDAR OPINIÓN
-    // Se usa @PostMapping para recibir los datos del formulario o fetch
     @PostMapping("/enviar")
     public String enviar(@RequestParam Long senderoId,
-                         @RequestParam Long usuarioId,
                          @RequestParam String comentario,
-                         @RequestParam int estrellas) {
+                         @RequestParam int estrellas,
+                         Principal principal) {
 
         try {
+            if (principal == null) return "Error: No hay sesión activa";
+
             Sendero s = senderoRepository.findById(senderoId)
                     .orElseThrow(() -> new RuntimeException("Sendero no encontrado"));
-            Usuario u = usuarioRepository.findById(usuarioId)
-                    .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+
+            // Adaptado a tu UsuarioRepository que devuelve Optional
+            Usuario u = usuarioRepository.findByUsername(principal.getName())
+                    .orElseThrow(() -> new RuntimeException("Usuario no encontrado en la base de datos"));
 
             Opinion op = new Opinion();
             op.setSendero(s);
@@ -48,15 +52,13 @@ public class OpinionController {
             return "¡Opinión guardada con éxito!";
 
         } catch (Exception e) {
-            return "Error al guardar la opinión: " + e.getMessage();
+            return "Error: " + e.getMessage();
         }
     }
 
     // 2. LISTAR COMENTARIOS DE UN SENDERO
-    // Devuelve un JSON con todas las opiniones de ese ID
     @GetMapping("/sendero/{id}")
     public List<Opinion> listar(@PathVariable Long id) {
-        // Asegúrate de que este método esté declarado en OpinionRepository
         return opinionRepository.findBySenderoId(id);
     }
 }

@@ -3,26 +3,24 @@
 <head>
     <meta charset="UTF-8">
     <title>Panel de Control - Tenerife Natural</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
     <style>
-        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; margin: 40px; background-color: #f4f7f6; }
+        body { font-family: 'Segoe UI', sans-serif; margin: 40px; background-color: #f4f7f6; }
         .container { max-width: 1000px; margin: auto; background: white; padding: 25px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); }
         h1 { color: #2e7d32; border-bottom: 2px solid #e8f5e9; padding-bottom: 10px; margin-bottom: 20px; }
-        .header-nav { margin-bottom: 20px; display: flex; gap: 10px; }
-        .form-section { background: #e8f5e9; padding: 20px; border-radius: 8px; margin-bottom: 30px; display: flex; gap: 15px; align-items: flex-end; flex-wrap: wrap; }
-        .form-group { display: flex; flex-direction: column; gap: 5px; }
-        input { padding: 8px; border: 1px solid #ccc; border-radius: 4px; }
-        table { border-collapse: collapse; width: 100%; }
-        th, td { padding: 12px; text-align: left; border-bottom: 1px solid #eee; }
-        th { background-color: #2e7d32; color: white; }
-        tr:hover { background-color: #f9f9f9; }
-        .btn { padding: 8px 15px; text-decoration: none; color: white; border-radius: 5px; font-size: 13px; border: none; cursor: pointer; transition: 0.3s; display: inline-block; }
-        .btn-save { background-color: #2e7d32; font-weight: bold; }
+        th { background-color: #2e7d32 !important; color: white !important; }
         .btn-fav { background-color: #ffca28; color: #333 !important; font-weight: bold; }
-        .btn-pyme { background-color: #1976d2; font-weight: bold; } /* Color azul para PYMEs */
-        .btn-delete { background-color: #d32f2f; }
-        .btn-access { background-color: #ffa000; }
-        .btn-info { background-color: #455a64; }
-        .btn:hover { opacity: 0.8; transform: translateY(-1px); }
+        .btn-pyme { background-color: #1976d2; color: white !important; font-weight: bold; }
+
+        /* Estilo para el Toast */
+        .toast-container { z-index: 1100; }
+        .bg-success-dark { background-color: #2e7d32 !important; }
+
+        .btn-fav:hover { background-color: #ffb300 !important; color: #333 !important; }
+        .btn-pyme:hover { background-color: #1565c0 !important; color: white !important; }
+
+        .btn-group .btn-warning:hover { background-color: #ffc107 !important; color: #212529 !important; }
+        .btn-group .btn-danger:hover { background-color: #bb2d3b !important; color: white !important; }
     </style>
 </head>
 <body>
@@ -30,60 +28,114 @@
 <div class="container">
     <h1>Gestión de Senderos 🌿</h1>
 
-    <div class="header-nav">
+    <div class="mb-4 d-flex gap-2">
         <a th:href="@{/senderos/favoritos/lista}" class="btn btn-fav">⭐ Mis Favoritos Pro</a>
         <a th:href="@{/senderos/sugerencias}" class="btn btn-pyme">🏢 Sugerencias PYMEs</a>
     </div>
 
-    <div class="form-section">
-        <form th:action="@{/senderos/guardar}" method="post" style="display: contents;">
-            <div class="form-group">
-                <label>Nombre del Sendero</label>
-                <input type="text" name="nombreSendero" placeholder="Ej: Anaga" required>
-            </div>
-            <div class="form-group">
-                <label>Latitud</label>
-                <input type="text" name="latitud" placeholder="28.4..." required>
-            </div>
-            <div class="form-group">
-                <label>Longitud</label>
-                <input type="text" name="longitud" placeholder="-16.3..." required>
-            </div>
-            <button type="submit" class="btn btn-save">➕ Añadir Sendero</button>
-        </form>
-    </div>
-
-    <table>
+    <table class="table table-hover">
         <thead>
         <tr>
             <th>Nombre</th>
-            <th>Dificultad</th>
+            <th>Distancia</th> <th>Dificultad</th>
             <th>Clima</th>
             <th>Acceso</th>
             <th>Acciones</th>
         </tr>
         </thead>
         <tbody>
-        <tr th:each="sendero : ${senderos}">
-            <td th:text="${sendero.nombreSendero}" style="font-weight: bold;"></td>
-            <td><span th:text="${sendero.dificultad}"></span></td>
-            <td th:text="${sendero.estadoMeteorologico}"></td>
-            <td><span th:text="${sendero.acceso ? '✅ Abierto' : '❌ Cerrado'}"></span></td>
+        <tr th:each="sendero : ${senderos}" th:id="'fila-' + ${sendero.id}">
+            <td th:text="${sendero.nombreSendero}" class="fw-bold"></td>
             <td>
-                <div style="display: flex; gap: 5px;">
-                    <a th:href="@{/senderos/detalle/{id}(id=${sendero.id})}" class="btn btn-info">Detalle</a>
-                    <a th:href="@{/senderos/alternar-acceso/{id}(id=${sendero.id})}" class="btn btn-access">Alternar</a>
-                    <a th:href="@{/senderos/eliminar/{id}(id=${sendero.id})}" class="btn btn-delete" onclick="return confirm('¿Seguro?');">Borrar</a>
+                <span class="badge bg-dark" th:text="${sendero.distancia != null ? #numbers.formatDecimal(sendero.distancia, 1, 2) + ' km' : '0.00 km'}"></span>
+            </td>
+            <td><span class="badge bg-secondary" th:text="${sendero.dificultad}"></span></td>
+            <td th:text="${sendero.estadoMeteorologico != null ? sendero.estadoMeteorologico : 'Cargando...'}"></td>
+            <td>
+        <span th:id="'status-' + ${sendero.id}"
+              class="badge"
+              th:classappend="${sendero.acceso ? 'bg-success' : 'bg-danger'}"
+              th:text="${sendero.acceso ? 'Abierto' : 'Cerrado'}">
+        </span>
+            </td>
+            <td>
+                <div class="btn-group btn-group-sm">
+                    <a th:href="@{/senderos/detalle/{id}(id=${sendero.id})}" class="btn btn-dark">Detalle</a>
+                    <button class="btn btn-warning fw-bold" th:onclick="'gestionarAcceso(' + ${sendero.id} + ')'">Alternar</button>
+                    <button class="btn btn-danger" th:onclick="'confirmarBorrado(' + ${sendero.id} + ')'">Borrar</button>
                 </div>
             </td>
         </tr>
         </tbody>
     </table>
 
-    <div style="margin-top: 25px; border-top: 1px solid #eee; padding-top: 15px;">
-        <a href="/index.html" style="color: #2e7d32; text-decoration: none; font-weight: bold;">⬅ Volver al Mapa Interactivo</a>
+    <div class="mt-4">
+        <a href="/senderos.html" class="text-success text-decoration-none fw-bold">⬅ Volver al Mapa Interactivo</a>
     </div>
 </div>
 
+<div class="modal fade" id="modalConfirmar" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-0 shadow">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title">¿Eliminar sendero?</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">Esta acción no se puede deshacer. ¿Estás seguro?</div>
+            <div class="modal-footer border-0">
+                <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" id="confirmarBtn" class="btn btn-danger px-4">Eliminar definitivamente</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="toast-container position-fixed bottom-0 end-0 p-3">
+    <div id="toastSuccess" class="toast align-items-center text-white bg-success-dark border-0" role="alert">
+        <div class="d-flex">
+            <div class="toast-body" id="toastMsg">¡Operación realizada con éxito! ✨</div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+<script>
+    let senderoIdSeleccionado = null;
+    const modalConfirm = new bootstrap.Modal(document.getElementById('modalConfirmar'));
+    const toastSuccess = new bootstrap.Toast(document.getElementById('toastSuccess'));
+
+    function mostrarToast(mensaje) {
+        document.getElementById('toastMsg').innerText = mensaje;
+        toastSuccess.show();
+    }
+
+    function gestionarAcceso(id) {
+        fetch(`/senderos/alternar-acceso/${id}`, { method: 'GET' })
+            .then(() => {
+                const badge = document.getElementById(`status-${id}`);
+                const esAbierto = badge.innerText === 'Abierto';
+                badge.innerText = esAbierto ? 'Cerrado' : 'Abierto';
+                badge.classList.toggle('bg-success');
+                badge.classList.toggle('bg-danger');
+                mostrarToast("¡Estado de acceso actualizado! 🔓");
+            });
+    }
+
+    function confirmarBorrado(id) {
+        senderoIdSeleccionado = id;
+        modalConfirm.show();
+    }
+
+    document.getElementById('confirmarBtn').onclick = function() {
+        fetch(`/senderos/eliminar/${senderoIdSeleccionado}`, { method: 'GET' })
+            .then(() => {
+                const fila = document.getElementById(`fila-${senderoIdSeleccionado}`);
+                if (fila) fila.remove();
+                modalConfirm.hide();
+                mostrarToast("¡Sendero borrado correctamente! 🗑️");
+            });
+    };
+</script>
 </body>
 </html>
